@@ -12,24 +12,20 @@
     <option *ngFor="let type of types" [value]="type">{{type}}</option>
   </select>
 </p>
-<p>Keyword: <input type="text" id="keyword" name="keyword" placeholder="keyword search" [(ngModel)]="keyword" [disabled]="useMockData" /></p>
+<p>Query: <input type="text" id="query" name="query" placeholder="query search" [(ngModel)]="query" [disabled]="useMockData" /></p>
 <p>Miles: <input type="text" id="miles" name="miles" placeholder="number of miles" [(ngModel)]="miles" [disabled]="useMockData" /></p>
-<!-- <p>Rank by: <input type="text" id="rankby" name="rankby" placeholder="distance or prominence" [(ngModel)]="rankby" [disabled]="useMockData" /></p> -->
-<p>
-  Price: <input type="text" id="minprice" name="minprice" placeholder="minprice" [(ngModel)]="minprice" [disabled]="useMockData" />
-  - <input type="text" id="maxprice" name="maxprice" placeholder="maxprice" [(ngModel)]="maxprice" [disabled]="useMockData" />
-</p>
-<button type="button" (click)="getPlaces()">Get Results</button>
-<button *ngIf="!useMockData && nextPageToken !== ''" type="button" (click)="getNextPage()">Get Next page</button>
+<p>Price: <input type="text" id="prices" name="prices" placeholder="prices" [(ngModel)]="prices" [disabled]="useMockData" /></p>
+<p>Open now?: <input type="checkbox" id="openNow" name="openNow" placeholder="distance" [(ngModel)]="openNow" [disabled]="useMockData" /></p>
+<p>Sort by distance: <input type="checkbox" id="sortby" name="sortby" placeholder="distance" [(ngModel)]="sortByDistance" [disabled]="useMockData" /></p>
 
-<!-- <ol>
-  <li *ngFor="let place of places;">
-    {{place.name}}
-  </li>
-</ol> -->
-<!-- <google-map></google-map> -->
-<ng-container *ngIf="places.length > 0">
-  <app-card [name]="places[0].name"></app-card>
-</ng-container>
+<button type="button" (click)="getNewRecommendations()">Get Results</button>
 
-<img [src]="pic" alt="">
+
+<div *ngIf="recommendations.length > 0" style="display: flex; justify-content: space-around; flex-wrap: wrap;">
+  <ol *ngFor="let rec of recommendations; let i = index" style="width: 150px;">
+    <p *ngIf="rec.photo"><img [src]="rec.photo.prefix + '150x150' + rec.photo.suffix" width="150px" alt=""></p>
+    <app-card [name]="i + rec.venue.name"></app-card>
+  </ol>
+</div>
+
+<button *ngIf="page < totalResults" type="button" (click)="getRecommendations()">Get Next page</button>

@@ -2,7 +2,10 @@ import { HttpClient } from '@angular/common/http';
 import { Component, OnInit } from '@angular/core';
 import { NearbySearch, NearbyResult, Photo } from 'src/app/interfaces/g-nearbysearch';
 import { environment } from 'src/environments/environment';
-import { map } from 'rxjs/operators';
+import { map, take, tap } from 'rxjs/operators';
+import { PlaceService } from './services/place.service';
+import { Venue } from './interfaces/fsq-search';
+import { Recommendation } from './interfaces/fsq-recommendations';
 
 @Component({
   selector: 'app-root',
@@ -17,103 +20,63 @@ export class AppComponent implements OnInit {
   useMockData: boolean = true;
   lat;
   lng;
-  miles: number = 5;
-  keyword: string = '';
-  minprice: string = '0';
-  maxprice: string = '4'
-  types = ['bakery', 'bar', 'cafe', 'restaurant', 'food'];
-  selectedType: 'bakery' | 'bar' | 'cafe' | 'restaurant' | 'food' = 'restaurant';
-  rankby: 'prominence' | 'distance' = 'prominence';
+
+  miles: number = 2;
+  query: string = '';
+  prices: string = '1,2,3,4';
+  types = ['food', 'breakfast', 'brunch', 'lunch', 'coffee', 'dinner', 'dessert', 'drinks'];
+  selectedType = 'food';
+  sortByDistance: boolean = true;
+  openNow: boolean = true;
 
   places: NearbyResult[] = [];
   nextPageToken: string = '';
   pic;
-  constructor(private http: HttpClient) {
+
+  venues: Venue[] = [];
+  recommendations: Recommendation[] = [];
+  page: number = 0;
+  pageLimit: number = 50;
+  totalResults: number = 0;
+
+  constructor(private http: HttpClient, private placeService: PlaceService) {
     if (!environment.production) {
       const proxyUrl = 'https://cors-anywhere-kw.herokuapp.com/';
       this.gPlaceEndpoint = proxyUrl + this.gPlaceEndpoint;
     }
   }
 
-  ngOnInit() {
-    this.getLocation();
-
-    if (this.useMockData) {
-      this.getPlaces();
-    }
-  }
-
-  getLocation() {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition((position) => {
-        this.lat = position.coords.latitude;
-        this.lng = position.coords.longitude;
-
-        console.log('lat: '+ this.lat);
-        console.log('lng: '+ this.lng);
-      });
-    } else { // some default geo location
-      // TODO: if location isn't allowed, make them enter a zipcode
-      this.lat = 40.68919;
-      this.lng = -73.992378;
-      console.log("No support for geolocation, set to default")
-    }
+  async ngOnInit() {
+    // this.getLocation();
+    this.getNewRecommendations();
+  console.log(this.recommendations);
   }
 
   milesToMeters = (miles) => miles * 1609;
 
-  getPlaces() {
-    const params = [
-      `location=${this.lat},${this.lng}`,
-      'radius=' + this.milesToMeters(this.miles),
-      'type=' + this.selectedType,
-      'maxprice=' + this.maxprice,
-      'minprice=' + this.minprice,
-      'rankby=' + this.rankby,
-      'key=' + this.apikey
-    ];
-    if (this.keyword !== '') params.push('keyword=' + this.keyword);
-    const gNearbySearch = this.gPlaceEndpoint + '/nearbysearch/json?' + params.join('&');
-    const gMockData = '/assets/mockdata/g-nearbysearch-20.json';
-
-    this.http.get<NearbySearch>(this.useMockData ? gMockData : gNearbySearch)
-      .subscribe((nearbySearch: NearbySearch) => {
-        console.log(nearbySearch)
-        this.places = nearbySearch.results;
-        this.nextPageToken = nearbySearch.next_page_token || '';
-
-        // if (this.places[0].photos !== undefined && this.places[0].photos.length > 0) {
-        //   this.getPlacePhoto(this.places[0].photos[0]);
-        // }
-      });
+  getNewRecommendations() {
+    this.recommendations = [];
+    this.page = 0;
+    this.getRecommendations();
   }
 
-  getNextPage() {
-    const params = [
-      'pagetoken=' + this.nextPageToken,
-      'key=' + this.apikey
-    ];
-    const gNearbySearch = this.gPlaceEndpoint + '/nearbysearch/json?' + params.join('&');
+  async getRecommendations() {
+    const { results, totalResults } = this.useMockData
+    ? await this.placeService.getMockRecommendations(this.page)
+    : await this.placeService.getRecommendations(
+      '36.317,-94.1568',
+      this.selectedType,
+      this.query,
+      this.milesToMeters(this.miles),
+      this.prices,
+      this.openNow,
+      this.sortByDistance,
+      this.page
+      );
 
-    this.http.get<NearbySearch>(gNearbySearch)
-      .subscribe((nearbySearch: NearbySearch) => {
-        console.log(nearbySearch)
-        this.places = nearbySearch.results;
-        this.nextPageToken = nearbySearch.next_page_token || '';
-      });
+    this.totalResults = totalResults;
+    this.page += this.pageLimit;
+    this.recommendations.push(...results);
   }
-
-  // TODO: figure out if pics are necessary. This is a more expensive request
-  // getPlacePhoto(photo: Photo) {
-
-  //   const params = [
-  //     'photo_reference=' + photo.photo_reference,
-  //     '&maxwidth=400',
-  //     'key=' + this.apikey
-  //   ].join('&')
-
-  //   this.http.get(this.gPlaceEndpoint + '/photo?' + params)
-  //     .subscribe(res => this.pic = res)
-  // }
 
 }
