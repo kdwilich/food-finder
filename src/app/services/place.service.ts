@@ -72,7 +72,7 @@ export class PlaceService {
   }
 
   getMockRecommendations(page): Promise<Group> {
-    return this.http.get<PlaceRecommendation>('/assets/mockdata/fsq-recommendations-lg.json')
+    return this.http.get<PlaceRecommendation>('assets/mockdata/fsq-recommendations-lg.json')
       .toPromise()
       .then(res => {
         const results = res.response.group.results.slice(page, page + 50);
